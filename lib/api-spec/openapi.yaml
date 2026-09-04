@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: portal
+    description: Burkan Taekwondo portal operations
 paths:
   /healthz:
     get:
@@ -24,6 +26,187 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [portal]
+      summary: Get the dashboard summary
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+  /students:
+    get:
+      operationId: getStudents
+      tags: [portal]
+      summary: List students visible to the current role
+      responses:
+        "200":
+          description: Student profiles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Student"
+  /attendance:
+    get:
+      operationId: getAttendance
+      tags: [portal]
+      summary: List attendance records
+      parameters:
+        - name: studentId
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Attendance records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AttendanceRecord"
+    post:
+      operationId: createAttendance
+      tags: [portal]
+      summary: Record an attendance entry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AttendanceInput"
+      responses:
+        "201":
+          description: Recorded attendance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendanceRecord"
+  /belt-tests:
+    get:
+      operationId: getBeltTests
+      tags: [portal]
+      summary: List belt test schedules
+      responses:
+        "200":
+          description: Belt test schedules
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BeltTest"
+  /feedback:
+    get:
+      operationId: getFeedback
+      tags: [portal]
+      summary: List coach feedback
+      responses:
+        "200":
+          description: Feedback records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FeedbackRecord"
+    post:
+      operationId: createFeedback
+      tags: [portal]
+      summary: Send coach feedback
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FeedbackInput"
+      responses:
+        "201":
+          description: Sent feedback
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeedbackRecord"
+  /financial-records:
+    get:
+      operationId: getFinancialRecords
+      tags: [portal]
+      summary: List financial records
+      responses:
+        "200":
+          description: Financial ledger
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FinancialRecord"
+    post:
+      operationId: createFinancialRecord
+      tags: [portal]
+      summary: Add a financial record
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FinancialInput"
+      responses:
+        "201":
+          description: Added financial record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FinancialRecord"
+  /schedule:
+    get:
+      operationId: getSchedule
+      tags: [portal]
+      summary: List class schedule entries
+      responses:
+        "200":
+          description: Class schedule
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ScheduleEntry"
+  /news:
+    get:
+      operationId: getNews
+      tags: [portal]
+      summary: List club news
+      responses:
+        "200":
+          description: Club announcements
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/NewsItem"
+  /locations:
+    get:
+      operationId: getLocations
+      tags: [portal]
+      summary: List club locations
+      responses:
+        "200":
+          description: Club branches
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Location"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +216,304 @@ components:
           type: string
       required:
         - status
+    DashboardSummary:
+      type: object
+      properties:
+        role:
+          type: string
+        displayName:
+          type: string
+        activeStudents:
+          type: number
+        attendanceRate:
+          type: number
+        nextTestDate:
+          type: string
+        outstandingBalance:
+          type: number
+        unreadFeedback:
+          type: number
+        upcomingClasses:
+          type: number
+      required:
+        - role
+        - displayName
+        - activeStudents
+        - attendanceRate
+        - nextTestDate
+        - outstandingBalance
+        - unreadFeedback
+        - upcomingClasses
+    Student:
+      type: object
+      properties:
+        id:
+          type: string
+        fullName:
+          type: string
+        belt:
+          type: string
+        beltColor:
+          type: string
+        status:
+          type: string
+        membership:
+          type: string
+        paymentStatus:
+          type: string
+        attendanceRate:
+          type: number
+        nextTestDate:
+          type: string
+        avatar:
+          type: string
+      required:
+        - id
+        - fullName
+        - belt
+        - beltColor
+        - status
+        - membership
+        - paymentStatus
+        - attendanceRate
+        - nextTestDate
+        - avatar
+    AttendanceRecord:
+      type: object
+      properties:
+        id:
+          type: string
+        studentId:
+          type: string
+        studentName:
+          type: string
+        date:
+          type: string
+        status:
+          type: string
+        className:
+          type: string
+        markedBy:
+          type: string
+      required:
+        - id
+        - studentId
+        - studentName
+        - date
+        - status
+        - className
+        - markedBy
+    AttendanceInput:
+      type: object
+      properties:
+        studentId:
+          type: string
+        date:
+          type: string
+        status:
+          type: string
+        className:
+          type: string
+      required:
+        - studentId
+        - date
+        - status
+        - className
+    BeltTest:
+      type: object
+      properties:
+        id:
+          type: string
+        date:
+          type: string
+        label:
+          type: string
+        location:
+          type: string
+        cost:
+          type: number
+        registrationStatus:
+          type: string
+        daysRemaining:
+          type: number
+      required:
+        - id
+        - date
+        - label
+        - location
+        - cost
+        - registrationStatus
+        - daysRemaining
+    FeedbackRecord:
+      type: object
+      properties:
+        id:
+          type: string
+        studentId:
+          type: string
+        studentName:
+          type: string
+        coachName:
+          type: string
+        date:
+          type: string
+        category:
+          type: string
+        title:
+          type: string
+        message:
+          type: string
+        read:
+          type: boolean
+      required:
+        - id
+        - studentId
+        - studentName
+        - coachName
+        - date
+        - category
+        - title
+        - message
+        - read
+    FeedbackInput:
+      type: object
+      properties:
+        studentId:
+          type: string
+        category:
+          type: string
+        title:
+          type: string
+        message:
+          type: string
+      required:
+        - studentId
+        - category
+        - title
+        - message
+    FinancialRecord:
+      type: object
+      properties:
+        id:
+          type: string
+        studentId:
+          type: string
+        studentName:
+          type: string
+        type:
+          type: string
+        description:
+          type: string
+        amount:
+          type: number
+        status:
+          type: string
+        timestamp:
+          type: string
+        dueDate:
+          type: ["string", "null"]
+      required:
+        - id
+        - studentId
+        - studentName
+        - type
+        - description
+        - amount
+        - status
+        - timestamp
+        - dueDate
+    FinancialInput:
+      type: object
+      properties:
+        studentId:
+          type: string
+        type:
+          type: string
+        description:
+          type: string
+        amount:
+          type: number
+        status:
+          type: string
+      required:
+        - studentId
+        - type
+        - description
+        - amount
+        - status
+    ScheduleEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        day:
+          type: string
+        date:
+          type: string
+        startTime:
+          type: string
+        endTime:
+          type: string
+        className:
+          type: string
+        location:
+          type: string
+        coachName:
+          type: string
+      required:
+        - id
+        - day
+        - date
+        - startTime
+        - endTime
+        - className
+        - location
+        - coachName
+    NewsItem:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        excerpt:
+          type: string
+        category:
+          type: string
+        publishedAt:
+          type: string
+        author:
+          type: string
+        image:
+          type: string
+      required:
+        - id
+        - title
+        - excerpt
+        - category
+        - publishedAt
+        - author
+        - image
+    Location:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        address:
+          type: string
+        phone:
+          type: string
+        mapsUrl:
+          type: string
+        hours:
+          type: string
+      required:
+        - id
+        - name
+        - address
+        - phone
+        - mapsUrl
+        - hours
 

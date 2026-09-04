@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Burkan Taekwondo Portal"
+description = "A mobile-responsive club portal for Burkan Taekwondo Center where parents, students, coaches, and administrators manage profiles, attendance, belt progress, feedback, schedules, news, locations, and financial records."
+version = "1.0.0"
+id = "artifacts/burkan-taekwondo-portal"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18830
+
+[services.development]
+run = "pnpm --filter @workspace/burkan-taekwondo-portal run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/burkan-taekwondo-portal", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/burkan-taekwondo-portal/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18830"
+BASE_PATH = "/"
