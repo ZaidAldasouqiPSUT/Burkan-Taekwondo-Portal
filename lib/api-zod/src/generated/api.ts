@@ -23,12 +23,12 @@ export const HealthCheckResponse = zod.object({
 export const GetDashboardSummaryResponse = zod.object({
   "role": zod.string(),
   "displayName": zod.string(),
-  "activeStudents": zod.int(),
-  "attendanceRate": zod.int(),
+  "activeStudents": zod.number(),
+  "attendanceRate": zod.number(),
   "nextTestDate": zod.string(),
   "outstandingBalance": zod.number(),
-  "unreadFeedback": zod.int(),
-  "upcomingClasses": zod.int()
+  "unreadFeedback": zod.number(),
+  "upcomingClasses": zod.number()
 })
 
 
@@ -43,7 +43,7 @@ export const GetStudentsResponseItem = zod.object({
   "status": zod.string(),
   "membership": zod.string(),
   "paymentStatus": zod.string(),
-  "attendanceRate": zod.int(),
+  "attendanceRate": zod.number(),
   "nextTestDate": zod.string(),
   "avatar": zod.string()
 })
@@ -100,7 +100,7 @@ export const GetBeltTestsResponseItem = zod.object({
   "location": zod.string(),
   "cost": zod.number(),
   "registrationStatus": zod.string(),
-  "daysRemaining": zod.int()
+  "daysRemaining": zod.number()
 })
 export const GetBeltTestsResponse = zod.array(GetBeltTestsResponseItem)
 
