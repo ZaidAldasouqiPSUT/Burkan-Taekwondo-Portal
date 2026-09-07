@@ -1,10 +1,12 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 
-export type Role = 'parent' | 'student' | 'coach' | 'admin';
+export type Role = 'parent' | 'student' | 'coach' | 'admin' | null;
 
 interface RoleContextType {
   role: Role;
-  setRole: (role: Role) => void;
+  isAuthenticated: boolean;
+  login: (role: Role) => void;
+  logout: () => void;
 }
 
 const RoleContext = createContext<RoleContextType | undefined>(undefined);
@@ -12,15 +14,23 @@ const RoleContext = createContext<RoleContextType | undefined>(undefined);
 export function RoleProvider({ children }: { children: ReactNode }) {
   const [role, setRoleState] = useState<Role>(() => {
     const saved = localStorage.getItem('burkan_role');
-    return (saved as Role) || 'student';
+    return (saved as Role) || null;
   });
 
-  useEffect(() => {
-    localStorage.setItem('burkan_role', role);
-  }, [role]);
+  const isAuthenticated = role !== null;
+
+  const login = (newRole: Role) => {
+    setRoleState(newRole);
+    localStorage.setItem('burkan_role', newRole as string);
+  };
+
+  const logout = () => {
+    setRoleState(null);
+    localStorage.removeItem('burkan_role');
+  };
 
   return (
-    <RoleContext.Provider value={{ role, setRole: setRoleState }}>
+    <RoleContext.Provider value={{ role, isAuthenticated, login, logout }}>
       {children}
     </RoleContext.Provider>
   );

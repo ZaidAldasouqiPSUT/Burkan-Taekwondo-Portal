@@ -50,7 +50,7 @@ export default function Dashboard() {
         <div className="relative z-10 max-w-4xl">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/20 text-primary border border-primary/30 mb-6 text-sm font-bold uppercase tracking-widest">
             <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-            {role.toUpperCase()} PORTAL
+            {role?.toUpperCase()} PORTAL
           </div>
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-display font-bold leading-tight tracking-tighter mb-4">
             WELCOME BACK, <br />

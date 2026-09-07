@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -29,6 +29,8 @@ export default function Feedback() {
   const [category, setCategory] = useState("Technical");
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
+
+  const [selectedFeedback, setSelectedFeedback] = useState<any | null>(null);
 
   const handleSubmit = () => {
     if (!studentId || !title || !message) return;
@@ -59,6 +61,18 @@ export default function Feedback() {
     );
   };
 
+  const handleOpenFeedback = (item: any) => {
+    setSelectedFeedback(item);
+    
+    if (!item.read && role !== 'coach') {
+      // Optimistically mark as read in local cache
+      queryClient.setQueryData(getGetFeedbackQueryKey(), (old: any) => {
+        if (!old) return old;
+        return old.map((f: any) => f.id === item.id ? { ...f, read: true } : f);
+      });
+    }
+  };
+
   return (
     <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -77,6 +91,7 @@ export default function Feedback() {
             <DialogContent className="sm:max-w-[500px]">
               <DialogHeader>
                 <DialogTitle className="font-display text-xl uppercase">New Feedback</DialogTitle>
+                <DialogDescription>Send progress updates or disciplinary notes to students.</DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
@@ -108,7 +123,7 @@ export default function Feedback() {
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-muted-foreground uppercase">Title</label>
-                  <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="E.g. Great improvement on roundhouse kicks" />
+                  <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Performance update title" />
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-muted-foreground uppercase">Message</label>
@@ -137,7 +152,11 @@ export default function Feedback() {
           </div>
         ) : (
           feedbacks?.map((item) => (
-            <Card key={item.id} className={cn("overflow-hidden hover-elevate transition-all border-l-4 cursor-pointer group", !item.read && role !== 'coach' ? "border-l-primary bg-primary/5" : "border-l-transparent bg-card")}>
+            <Card 
+              key={item.id} 
+              onClick={() => handleOpenFeedback(item)}
+              className={cn("overflow-hidden hover-elevate transition-all border-l-4 cursor-pointer group", !item.read && role !== 'coach' ? "border-l-primary bg-primary/5" : "border-l-transparent bg-card")}
+            >
               <CardContent className="p-0">
                 <div className="p-6 flex items-start gap-4">
                   <div className="flex-1 min-w-0">
@@ -176,6 +195,38 @@ export default function Feedback() {
           ))
         )}
       </div>
+
+      <Dialog open={!!selectedFeedback} onOpenChange={(open) => !open && setSelectedFeedback(null)}>
+        <DialogContent className="sm:max-w-[600px]">
+          {selectedFeedback && (
+            <>
+              <DialogHeader className="mb-4">
+                <div className="flex items-center justify-between mb-4">
+                  <Badge variant="secondary" className="text-xs uppercase font-bold tracking-wider">
+                    {selectedFeedback.category}
+                  </Badge>
+                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground font-medium">
+                    <Calendar className="h-4 w-4" />
+                    {format(new Date(selectedFeedback.date), 'MMMM d, yyyy')}
+                  </div>
+                </div>
+                <DialogTitle className="text-2xl font-display font-bold">{selectedFeedback.title}</DialogTitle>
+                <DialogDescription className="text-base text-foreground mt-2">
+                  {role === 'coach' ? `To: ${selectedFeedback.studentName}` : `From: Coach ${selectedFeedback.coachName}`}
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="bg-muted/30 p-6 rounded-lg text-sm md:text-base leading-relaxed border whitespace-pre-wrap">
+                {selectedFeedback.message}
+              </div>
+              
+              <DialogFooter className="mt-6">
+                <Button onClick={() => setSelectedFeedback(null)}>Close</Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

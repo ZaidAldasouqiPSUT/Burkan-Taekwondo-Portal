@@ -1,16 +1,40 @@
+import { useState } from "react";
 import { useGetSchedule } from "@workspace/api-client-react";
 import { useRole } from "@/lib/role-store";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
-import { CalendarDays, Clock, MapPin, User, ChevronRight } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { CalendarDays, Clock, MapPin, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Schedule() {
   const { data: schedule, isLoading } = useGetSchedule();
   const { role } = useRole();
+  const { toast } = useToast();
 
   const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+  const [timeOffOpen, setTimeOffOpen] = useState(false);
+  const [coverageOpen, setCoverageOpen] = useState<any | null>(null);
+  
+  const [date, setDate] = useState("");
+  const [reason, setReason] = useState("");
+
+  const handleRequestTimeOff = () => {
+    if (!date || !reason) return;
+    toast({ title: "Time Off Requested", description: `Your request for ${date} has been submitted.` });
+    setTimeOffOpen(false);
+    setDate("");
+    setReason("");
+  };
+
+  const handleManageCoverage = (cls: any) => {
+    toast({ title: "Coverage Updated", description: `Coverage request sent for ${cls.className}.` });
+    setCoverageOpen(null);
+  };
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8">
@@ -21,9 +45,33 @@ export default function Schedule() {
         </div>
         
         {role === 'coach' && (
-          <Button className="font-bold uppercase tracking-wider">
-            Request Time Off
-          </Button>
+          <Dialog open={timeOffOpen} onOpenChange={setTimeOffOpen}>
+            <DialogTrigger asChild>
+              <Button className="font-bold uppercase tracking-wider">
+                Request Time Off
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Request Time Off</DialogTitle>
+                <DialogDescription>Submit your availability changes for approval.</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-muted-foreground uppercase">Date</label>
+                  <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-muted-foreground uppercase">Reason</label>
+                  <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason for time off..." />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setTimeOffOpen(false)}>Cancel</Button>
+                <Button onClick={handleRequestTimeOff} disabled={!date || !reason}>Submit Request</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         )}
       </div>
 
@@ -72,7 +120,10 @@ export default function Schedule() {
                         </div>
 
                         {role === 'coach' && (
-                          <div className="pt-3 border-t border-border/50 text-xs text-center font-bold text-primary cursor-pointer hover:underline uppercase tracking-wider">
+                          <div 
+                            className="pt-3 border-t border-border/50 text-xs text-center font-bold text-primary cursor-pointer hover:underline uppercase tracking-wider"
+                            onClick={() => setCoverageOpen(cls)}
+                          >
                             Manage Coverage
                           </div>
                         )}
@@ -85,6 +136,35 @@ export default function Schedule() {
           })}
         </div>
       )}
+
+      <Dialog open={!!coverageOpen} onOpenChange={(open) => !open && setCoverageOpen(null)}>
+        <DialogContent className="sm:max-w-[425px]">
+          {coverageOpen && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Manage Class Coverage</DialogTitle>
+                <DialogDescription>
+                  Request another coach to cover {coverageOpen.className} on {coverageOpen.day}.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="bg-muted/50 p-4 rounded-lg my-4 space-y-2 text-sm">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-primary" /> 
+                  <span className="font-bold">{coverageOpen.startTime} - {coverageOpen.endTime}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-primary" /> 
+                  <span>{coverageOpen.location}</span>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setCoverageOpen(null)}>Cancel</Button>
+                <Button onClick={() => handleManageCoverage(coverageOpen)}>Request Coverage</Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

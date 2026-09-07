@@ -6,22 +6,50 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Award, Loader2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Login() {
   const [, setLocation] = useLocation();
-  const { setRole } = useRole();
+  const { login } = useRole();
+  const { toast } = useToast();
+  
   const [isLoading, setIsLoading] = useState(false);
   const [selectedRole, setSelectedRole] = useState<Role>('student');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("password123");
+
+  const [isForgotOpen, setIsForgotOpen] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email || !password) {
+      toast({ variant: "destructive", title: "Error", description: "Please enter your email and password." });
+      return;
+    }
+    
     setIsLoading(true);
     
     // Simulate network delay for polish
     setTimeout(() => {
-      setRole(selectedRole);
+      login(selectedRole);
+      toast({ title: "Welcome back!", description: `Successfully signed in as ${selectedRole}.` });
       setLocation("/");
     }, 800);
+  };
+
+  const handleResetPassword = () => {
+    if (!resetEmail) {
+      toast({ variant: "destructive", title: "Error", description: "Please enter your email address." });
+      return;
+    }
+    
+    toast({
+      title: "Reset link sent",
+      description: "If an account exists, a Firebase password reset email has been sent. (Demo: check your email)",
+    });
+    setIsForgotOpen(false);
   };
 
   return (
@@ -49,20 +77,67 @@ export default function Login() {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email" className="uppercase text-xs font-bold text-muted-foreground tracking-wider">Email Address</Label>
-                <Input id="email" type="email" placeholder="champion@example.com" required className="h-12 bg-background" />
+                <Input 
+                  id="email" 
+                  type="email" 
+                  autoComplete="email"
+                  placeholder="champion@example.com" 
+                  required 
+                  className="h-12 bg-background"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password" className="uppercase text-xs font-bold text-muted-foreground tracking-wider">Password</Label>
-                  <a href="#" className="text-xs font-medium text-primary hover:underline">Forgot password?</a>
+                  <Dialog open={isForgotOpen} onOpenChange={setIsForgotOpen}>
+                    <DialogTrigger asChild>
+                      <button type="button" className="text-xs font-medium text-primary hover:underline bg-transparent border-none cursor-pointer">
+                        Forgot password?
+                      </button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[425px]">
+                      <DialogHeader>
+                        <DialogTitle>Reset Password</DialogTitle>
+                        <DialogDescription>
+                          Enter your email address to receive a password reset link. This uses Firebase Authentication.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                          <Label>Email</Label>
+                          <Input 
+                            type="email" 
+                            autoComplete="email"
+                            placeholder="your@email.com" 
+                            value={resetEmail} 
+                            onChange={(e) => setResetEmail(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button type="button" variant="outline" onClick={() => setIsForgotOpen(false)}>Cancel</Button>
+                        <Button type="button" onClick={handleResetPassword}>Send Link</Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
                 </div>
-                <Input id="password" type="password" required className="h-12 bg-background" defaultValue="password123" />
+                <Input 
+                  id="password" 
+                  type="password" 
+                  autoComplete="current-password"
+                  required 
+                  className="h-12 bg-background" 
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
               </div>
               
               <div className="space-y-2 pt-2">
                 <Label className="uppercase text-xs font-bold text-muted-foreground tracking-wider mb-2 block">Prototype: Select Role</Label>
-                <div className="grid grid-cols-2 gap-2">
-                  {(['student', 'parent', 'coach', 'admin'] as const).map(r => (
+                <div className="grid grid-cols-3 gap-2">
+                  {(['student', 'parent', 'coach'] as const).map(r => (
                     <Button 
                       key={r}
                       type="button"

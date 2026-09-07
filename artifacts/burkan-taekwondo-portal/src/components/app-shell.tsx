@@ -1,5 +1,6 @@
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRole } from "@/lib/role-store";
 import { 
   Home, 
@@ -37,13 +38,44 @@ const ALL_NAV_ITEMS = [
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const [location] = useLocation();
-  const { role, setRole } = useRole();
+  const [location, setLocation] = useLocation();
+  const { role, login, logout, isAuthenticated } = useRole();
+  const queryClient = useQueryClient();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isAuthenticated && location !== "/login") {
+      setLocation("/login");
+    } else if (isAuthenticated && location === "/login") {
+      setLocation("/");
+    }
+  }, [isAuthenticated, location, setLocation]);
+
+  if (!isAuthenticated) {
+    return <>{children}</>;
+  }
 
   const isAuthPage = location === "/login";
   if (isAuthPage) return <>{children}</>;
 
-  const navItems = ALL_NAV_ITEMS.filter(item => item.roles.includes(role));
+  const handleLogout = () => {
+    setMobileMenuOpen(false);
+    setMoreMenuOpen(false);
+    queryClient.clear();
+    logout();
+    setLocation("/login");
+  };
+
+  const handleRoleChange = (nextRole: "parent" | "student" | "coach") => {
+    setMobileMenuOpen(false);
+    setMoreMenuOpen(false);
+    login(nextRole);
+    setLocation("/");
+  };
+
+  const navItems = ALL_NAV_ITEMS.filter(item => role && item.roles.includes(role));
+
   
   // Mobile bottom nav items (max 4 + 'More' menu)
   const mobileNavItems = navItems.slice(0, 4);
@@ -76,17 +108,18 @@ export function AppShell({ children }: { children: ReactNode }) {
           
           <div className="mt-auto px-4 pt-4 border-t">
             <Link href="/settings">
-              <div className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground">
+              <div className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground cursor-pointer">
                 <Settings className="h-5 w-5" />
                 Settings
               </div>
             </Link>
-            <Link href="/login">
-              <div className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-destructive hover:bg-destructive/10 mt-1">
-                <LogOut className="h-5 w-5" />
-                Sign Out
-              </div>
-            </Link>
+            <div 
+              className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-destructive hover:bg-destructive/10 mt-1 cursor-pointer"
+              onClick={handleLogout}
+            >
+              <LogOut className="h-5 w-5" />
+              Sign Out
+            </div>
           </div>
         </div>
       </aside>
@@ -98,7 +131,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <span>BURKAN TKD</span>
         </Link>
         
-        <Sheet>
+        <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon" className="-mr-2">
               <Menu className="h-6 w-6" />
@@ -132,19 +165,20 @@ export function AppShell({ children }: { children: ReactNode }) {
                 
                 <SheetClose asChild>
                   <Link href="/settings">
-                    <div className="flex items-center gap-3 rounded-md px-3 py-3 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground">
+                    <div className="flex items-center gap-3 rounded-md px-3 py-3 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground cursor-pointer">
                       <Settings className="h-5 w-5" />
                       Settings
                     </div>
                   </Link>
                 </SheetClose>
                 <SheetClose asChild>
-                  <Link href="/login">
-                    <div className="flex items-center gap-3 rounded-md px-3 py-3 text-sm font-medium text-destructive hover:bg-destructive/10">
-                      <LogOut className="h-5 w-5" />
-                      Sign Out
-                    </div>
-                  </Link>
+                  <div 
+                    className="flex items-center gap-3 rounded-md px-3 py-3 text-sm font-medium text-destructive hover:bg-destructive/10 cursor-pointer"
+                    onClick={handleLogout}
+                  >
+                    <LogOut className="h-5 w-5" />
+                    Sign Out
+                  </div>
                 </SheetClose>
               </nav>
             </div>
@@ -156,13 +190,13 @@ export function AppShell({ children }: { children: ReactNode }) {
                 Prototype Role
               </div>
               <div className="grid grid-cols-2 gap-2">
-                {(['parent', 'student', 'coach', 'admin'] as const).map(r => (
+                {(['parent', 'student', 'coach'] as const).map(r => (
                   <Button 
                     key={r} 
                     variant={role === r ? "default" : "outline"}
                     size="sm"
                     className="capitalize text-xs"
-                    onClick={() => setRole(r)}
+                    onClick={() => handleRoleChange(r)}
                   >
                     {r}
                   </Button>
@@ -181,13 +215,12 @@ export function AppShell({ children }: { children: ReactNode }) {
             <span className="text-muted-foreground font-medium text-xs">Viewing as:</span>
             <select 
               className="bg-transparent border-none text-primary font-bold text-sm capitalize focus:ring-0 outline-none cursor-pointer"
-              value={role}
-              onChange={(e) => setRole(e.target.value as any)}
+              value={role || ""}
+              onChange={(e) => handleRoleChange(e.target.value as "parent" | "student" | "coach")}
             >
               <option value="student">Student</option>
               <option value="parent">Parent</option>
               <option value="coach">Coach</option>
-              <option value="admin">Admin</option>
             </select>
           </div>
         </div>
@@ -196,7 +229,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </main>
 
       {/* Mobile Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 border-t bg-card pb-safe md:hidden">
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t bg-card pb-[env(safe-area-inset-bottom)] md:hidden">
         <nav className="flex h-16 items-center justify-around px-2">
           {mobileNavItems.map((item) => {
             const isActive = location === item.href;
@@ -214,12 +247,12 @@ export function AppShell({ children }: { children: ReactNode }) {
           })}
           {/* We replace the 5th item with the 'More' button that just opens the sheet if there are many */}
           {navItems.length > 4 && (
-            <Sheet>
+            <Sheet open={moreMenuOpen} onOpenChange={setMoreMenuOpen}>
               <SheetTrigger asChild>
-                <div className="flex h-full flex-1 flex-col items-center justify-center gap-1 cursor-pointer text-muted-foreground hover:text-foreground">
+                <button type="button" className="flex h-full flex-1 flex-col items-center justify-center gap-1 cursor-pointer text-muted-foreground hover:text-foreground">
                   <Menu className="h-5 w-5 mb-1" />
                   <span className="text-[10px] font-medium">More</span>
-                </div>
+                </button>
               </SheetTrigger>
               <SheetContent side="bottom" className="h-[80dvh] rounded-t-xl px-0 pt-6">
                 <SheetHeader className="px-6 mb-4 text-left">
@@ -247,13 +280,13 @@ export function AppShell({ children }: { children: ReactNode }) {
                     Prototype Role
                   </div>
                   <div className="grid grid-cols-2 gap-2 mb-6">
-                    {(['parent', 'student', 'coach', 'admin'] as const).map(r => (
+                    {(['parent', 'student', 'coach'] as const).map(r => (
                       <Button 
                         key={r} 
                         variant={role === r ? "default" : "outline"}
                         size="sm"
                         className="capitalize text-xs"
-                        onClick={() => setRole(r)}
+                        onClick={() => handleRoleChange(r)}
                       >
                         {r}
                       </Button>
@@ -262,19 +295,20 @@ export function AppShell({ children }: { children: ReactNode }) {
 
                   <SheetClose asChild>
                     <Link href="/settings">
-                      <div className="flex items-center gap-3 rounded-md px-3 py-3 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground">
+                      <div className="flex items-center gap-3 rounded-md px-3 py-3 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground cursor-pointer">
                         <Settings className="h-5 w-5" />
                         Settings
                       </div>
                     </Link>
                   </SheetClose>
                   <SheetClose asChild>
-                    <Link href="/login">
-                      <div className="flex items-center gap-3 rounded-md px-3 py-3 text-sm font-medium text-destructive hover:bg-destructive/10">
-                        <LogOut className="h-5 w-5" />
-                        Sign Out
-                      </div>
-                    </Link>
+                    <div 
+                      className="flex items-center gap-3 rounded-md px-3 py-3 text-sm font-medium text-destructive hover:bg-destructive/10 cursor-pointer"
+                      onClick={handleLogout}
+                    >
+                      <LogOut className="h-5 w-5" />
+                      Sign Out
+                    </div>
                   </SheetClose>
                 </div>
               </SheetContent>

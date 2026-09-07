@@ -1,15 +1,51 @@
+import { useState, useEffect } from "react";
 import { useRole } from "@/lib/role-store";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { AlertCircle, User, Bell, Shield } from "lucide-react";
 import { useGetDashboardSummary } from "@workspace/api-client-react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Settings() {
   const { role } = useRole();
   const { data: summary } = useGetDashboardSummary();
+  const { toast } = useToast();
+
+  const [pushNotifs, setPushNotifs] = useState(true);
+  const [emailUpdates, setEmailUpdates] = useState(true);
+  const [smsAlerts, setSmsAlerts] = useState(false);
+  
+  const [isPasswordOpen, setIsPasswordOpen] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+
+  // Load saved preferences
+  useEffect(() => {
+    const saved = localStorage.getItem('burkan_notifs');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      setPushNotifs(parsed.pushNotifs ?? true);
+      setEmailUpdates(parsed.emailUpdates ?? true);
+      setSmsAlerts(parsed.smsAlerts ?? false);
+    }
+  }, []);
+
+  // Save preferences
+  useEffect(() => {
+    localStorage.setItem('burkan_notifs', JSON.stringify({ pushNotifs, emailUpdates, smsAlerts }));
+  }, [pushNotifs, emailUpdates, smsAlerts]);
+
+  const handleSaveContact = () => {
+    toast({ title: "Contact Info Saved", description: "Your contact details have been updated successfully." });
+  };
+
+  const handleResetPassword = () => {
+    toast({ title: "Reset link sent", description: "If an account exists, a Firebase password reset email has been sent." });
+    setIsPasswordOpen(false);
+  };
 
   return (
     <div className="p-4 md:p-8 max-w-3xl mx-auto space-y-8">
@@ -44,7 +80,7 @@ export default function Settings() {
               </div>
               <div className="space-y-2">
                 <Label>Assigned Role (Read-only)</Label>
-                <Input value={role.toUpperCase()} readOnly className="bg-muted cursor-not-allowed uppercase" />
+                <Input value={role?.toUpperCase() || ""} readOnly className="bg-muted cursor-not-allowed uppercase" />
               </div>
               <div className="space-y-2">
                 <Label>Email</Label>
@@ -56,7 +92,7 @@ export default function Settings() {
               </div>
             </div>
             
-            <Button className="font-bold uppercase tracking-wider">Save Contact Info</Button>
+            <Button className="font-bold uppercase tracking-wider" onClick={handleSaveContact}>Save Contact Info</Button>
           </CardContent>
         </Card>
 
@@ -73,21 +109,21 @@ export default function Settings() {
                 <Label className="text-base">Push Notifications</Label>
                 <p className="text-sm text-muted-foreground">Receive alerts for schedule changes and feedback on your device.</p>
               </div>
-              <Switch defaultChecked />
+              <Switch checked={pushNotifs} onCheckedChange={setPushNotifs} />
             </div>
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label className="text-base">Email Updates</Label>
                 <p className="text-sm text-muted-foreground">Monthly progress reports and billing statements.</p>
               </div>
-              <Switch defaultChecked />
+              <Switch checked={emailUpdates} onCheckedChange={setEmailUpdates} />
             </div>
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label className="text-base">SMS Alerts</Label>
                 <p className="text-sm text-muted-foreground">Urgent club closures or emergency updates.</p>
               </div>
-              <Switch defaultChecked={false} />
+              <Switch checked={smsAlerts} onCheckedChange={setSmsAlerts} />
             </div>
           </CardContent>
         </Card>
@@ -100,7 +136,34 @@ export default function Settings() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Button variant="outline" className="w-full sm:w-auto font-bold uppercase tracking-wider">Change Password</Button>
+            <Dialog open={isPasswordOpen} onOpenChange={setIsPasswordOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="w-full sm:w-auto font-bold uppercase tracking-wider">Change Password</Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Reset Password</DialogTitle>
+                  <DialogDescription>
+                    Enter your email to receive a Firebase password reset link.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label>Email Address</Label>
+                    <Input 
+                      type="email" 
+                      placeholder="your@email.com" 
+                      value={resetEmail}
+                      onChange={(e) => setResetEmail(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setIsPasswordOpen(false)}>Cancel</Button>
+                  <Button onClick={handleResetPassword}>Send Reset Link</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </CardContent>
         </Card>
       </div>

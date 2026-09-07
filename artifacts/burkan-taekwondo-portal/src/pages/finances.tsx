@@ -1,16 +1,22 @@
+import { useState } from "react";
 import { useGetFinancialRecords, useGetDashboardSummary } from "@workspace/api-client-react";
 import { useRole } from "@/lib/role-store";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CreditCard, History, AlertCircle, ArrowUpRight, CheckCircle2, Clock } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { CreditCard, History, AlertCircle, Download, CheckCircle2, Clock, Filter } from "lucide-react";
 import { format } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Finances() {
   const { role } = useRole();
   const { data: records, isLoading } = useGetFinancialRecords();
   const { data: summary } = useGetDashboardSummary();
+  const { toast } = useToast();
+
+  const [paymentOpen, setPaymentOpen] = useState(false);
 
   if (role === 'coach') {
     return (
@@ -21,6 +27,15 @@ export default function Finances() {
       </div>
     );
   }
+
+  const handleSimulatePayment = () => {
+    toast({ title: "Payment Successful", description: "Your payment has been recorded." });
+    setPaymentOpen(false);
+  };
+
+  const handleExport = () => {
+    toast({ title: "Exporting Data", description: "Your financial report is being generated." });
+  };
 
   return (
     <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-8">
@@ -42,9 +57,35 @@ export default function Finances() {
             )}
             
             <div className="space-y-3">
-              <Button className="w-full font-bold uppercase tracking-wider h-12" onClick={() => alert('Online payments placeholder. Integration coming soon.')}>
-                <CreditCard className="mr-2 h-5 w-5" /> Pay Now
-              </Button>
+              <Dialog open={paymentOpen} onOpenChange={setPaymentOpen}>
+                <DialogTrigger asChild>
+                  <Button className="w-full font-bold uppercase tracking-wider h-12">
+                    <CreditCard className="mr-2 h-5 w-5" /> Pay Now
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px]">
+                  <DialogHeader>
+                    <DialogTitle>Make a Payment</DialogTitle>
+                    <DialogDescription>
+                      Settle your outstanding balance.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg mt-2 mb-4 dark:bg-amber-950/30 dark:border-amber-900/50">
+                    <p className="text-sm font-medium text-amber-800 dark:text-amber-500">
+                      Online payments are coming soon. This is a demo placeholder. Click "Simulate Payment" to proceed.
+                    </p>
+                  </div>
+                  <div className="flex justify-between items-center text-lg font-bold mb-4 px-2">
+                    <span>Total Due:</span>
+                    <span className="text-primary">${summary?.outstandingBalance || 0}</span>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setPaymentOpen(false)}>Cancel</Button>
+                    <Button onClick={handleSimulatePayment} disabled={!summary?.outstandingBalance}>Simulate Payment</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+
               <div className="text-center text-xs text-muted-foreground">
                 Online payments are coming soon.<br/>
                 Please pay at the front desk.
@@ -61,6 +102,14 @@ export default function Finances() {
                 <History className="h-5 w-5 text-primary" />
                 Transaction History
               </CardTitle>
+              <div className="flex gap-2">
+                <Button variant="outline" size="icon" onClick={() => toast({ title: "Filter", description: "Filter options coming soon." })}>
+                  <Filter className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" size="icon" onClick={handleExport}>
+                  <Download className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent className="p-0">
