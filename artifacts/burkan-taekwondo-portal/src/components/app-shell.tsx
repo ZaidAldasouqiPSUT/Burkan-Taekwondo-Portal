@@ -15,7 +15,6 @@ import {
   Info, 
   Settings, 
   Menu,
-  X,
   LogOut,
   Shield
 } from "lucide-react";
@@ -41,7 +40,6 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [location, setLocation] = useLocation();
   const { role, login, logout, isAuthenticated } = useRole();
   const queryClient = useQueryClient();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -60,7 +58,6 @@ export function AppShell({ children }: { children: ReactNode }) {
   if (isAuthPage) return <>{children}</>;
 
   const handleLogout = () => {
-    setMobileMenuOpen(false);
     setMoreMenuOpen(false);
     queryClient.clear();
     logout();
@@ -68,7 +65,6 @@ export function AppShell({ children }: { children: ReactNode }) {
   };
 
   const handleRoleChange = (nextRole: "parent" | "student" | "coach") => {
-    setMobileMenuOpen(false);
     setMoreMenuOpen(false);
     login(nextRole);
     setLocation("/");
@@ -131,80 +127,6 @@ export function AppShell({ children }: { children: ReactNode }) {
           <span>BURKAN TKD</span>
         </Link>
         
-        <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-          <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="-mr-2">
-              <Menu className="h-6 w-6" />
-              <span className="sr-only">Toggle navigation menu</span>
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="right" className="w-[80vw] sm:w-[385px] p-0 flex flex-col">
-            <SheetHeader className="p-6 border-b text-left">
-              <SheetTitle className="flex items-center gap-2 font-display text-xl font-bold text-primary">
-                <Award className="h-6 w-6" />
-                BURKAN TKD
-              </SheetTitle>
-            </SheetHeader>
-            <div className="flex-1 overflow-y-auto py-4">
-              <nav className="flex flex-col space-y-1 px-4">
-                {navItems.map((item) => (
-                  <SheetClose asChild key={item.href}>
-                    <Link href={item.href}>
-                      <div className={cn(
-                        "flex items-center gap-3 rounded-md px-3 py-3 text-sm font-medium transition-colors",
-                        location === item.href ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                      )}>
-                        <item.icon className="h-5 w-5" />
-                        {item.label}
-                      </div>
-                    </Link>
-                  </SheetClose>
-                ))}
-                
-                <div className="my-4 h-px bg-border" />
-                
-                <SheetClose asChild>
-                  <Link href="/settings">
-                    <div className="flex items-center gap-3 rounded-md px-3 py-3 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground cursor-pointer">
-                      <Settings className="h-5 w-5" />
-                      Settings
-                    </div>
-                  </Link>
-                </SheetClose>
-                <SheetClose asChild>
-                  <div 
-                    className="flex items-center gap-3 rounded-md px-3 py-3 text-sm font-medium text-destructive hover:bg-destructive/10 cursor-pointer"
-                    onClick={handleLogout}
-                  >
-                    <LogOut className="h-5 w-5" />
-                    Sign Out
-                  </div>
-                </SheetClose>
-              </nav>
-            </div>
-            
-            {/* Prototype Role Switcher */}
-            <div className="p-4 border-t bg-muted/30">
-              <div className="text-xs font-semibold text-muted-foreground mb-3 flex items-center gap-2 uppercase tracking-wider">
-                <Shield className="h-4 w-4" /> 
-                Prototype Role
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                {(['parent', 'student', 'coach'] as const).map(r => (
-                  <Button 
-                    key={r} 
-                    variant={role === r ? "default" : "outline"}
-                    size="sm"
-                    className="capitalize text-xs"
-                    onClick={() => handleRoleChange(r)}
-                  >
-                    {r}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          </SheetContent>
-        </Sheet>
       </header>
 
       {/* Main Content */}

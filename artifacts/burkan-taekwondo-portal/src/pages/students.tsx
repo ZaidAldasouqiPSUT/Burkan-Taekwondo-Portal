@@ -1,6 +1,10 @@
 import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
-import { useGetStudents } from "@workspace/api-client-react";
+import {
+  useCreateFeedback,
+  getGetFeedbackQueryKey,
+  useGetStudents,
+} from "@workspace/api-client-react";
 import { useRole } from "@/lib/role-store";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,14 +14,53 @@ import { AlertCircle, Search, Filter, CalendarDays, Award, Clock } from "lucide-
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Students() {
   const { role } = useRole();
   const [, setLocation] = useLocation();
   const { data: students, isLoading, error } = useGetStudents();
+  const createFeedback = useCreateFeedback();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const [search, setSearch] = useState("");
   const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
+
+  const handleSendReminder = () => {
+    if (!selectedStudent || role !== "coach") return;
+
+    createFeedback.mutate(
+      {
+        data: {
+          studentId: selectedStudent.id,
+          category: "Payment Reminder",
+          title: "Membership payment reminder",
+          message: `A coach sent a reminder about the outstanding membership payment for ${selectedStudent.fullName}. Please contact the club if you have already paid or need assistance.`,
+        },
+      },
+      {
+        onSuccess: () => {
+          void queryClient.invalidateQueries({
+            queryKey: getGetFeedbackQueryKey(),
+          });
+          toast({
+            title: "Reminder sent",
+            description: `A payment reminder for ${selectedStudent.fullName} was sent to the student and parent feedback inbox.`,
+          });
+          setSelectedStudent(null);
+        },
+        onError: () => {
+          toast({
+            title: "Reminder could not be sent",
+            description: "Please try again in a moment.",
+            variant: "destructive",
+          });
+        },
+      },
+    );
+  };
 
   const filteredStudents = useMemo(() => {
     if (!students) return [];
@@ -192,8 +235,26 @@ export default function Students() {
                   <div className="text-xs font-bold uppercase text-primary mb-2">Financial Status</div>
                   <div className="flex items-center justify-between">
                     <span className="font-bold">{selectedStudent.paymentStatus}</span>
-                    {selectedStudent.paymentStatus !== 'Paid' && (
-                      <Button variant="link" size="sm" className="h-auto p-0 text-primary font-bold" onClick={() => setLocation('/finances')}>Pay Now</Button>
+                    {selectedStudent.paymentStatus !== 'Paid' && role === "coach" && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 rounded-full border-primary px-3 text-xs font-bold text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
+                        disabled={createFeedback.isPending}
+                        onClick={handleSendReminder}
+                      >
+                        {createFeedback.isPending ? "Sending..." : "Send Reminder"}
+                      </Button>
+                    )}
+                    {selectedStudent.paymentStatus !== 'Paid' && role !== "coach" && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 rounded-full border-primary px-3 text-xs font-bold text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
+                        onClick={() => setLocation('/finances')}
+                      >
+                        Pay Now
+                      </Button>
                     )}
                   </div>
                 </div>
