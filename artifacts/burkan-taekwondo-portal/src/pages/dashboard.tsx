@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 
 export default function Dashboard() {
-  const { role } = useRole();
+  const { role, account } = useRole();
   const { data: summary, isLoading, error } = useGetDashboardSummary();
 
   if (isLoading) {
@@ -54,7 +54,7 @@ export default function Dashboard() {
           </div>
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-display font-bold leading-tight tracking-tighter mb-4">
             WELCOME BACK, <br />
-            <span className="text-primary">{summary.displayName}</span>
+            <span className="text-primary">{account?.displayName ?? summary.displayName}</span>
           </h1>
           <p className="text-lg md:text-xl text-gray-300 max-w-2xl leading-relaxed mb-8">
             Stay disciplined. Track your progress. Never back down. This is Burkan Taekwondo.

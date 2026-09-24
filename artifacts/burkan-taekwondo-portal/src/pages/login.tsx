@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { useRole, Role } from "@/lib/role-store";
+import { useRole } from "@/lib/role-store";
+import { DEMO_ACCOUNTS, DEMO_PASSWORD } from "@/lib/mock-database";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,9 +16,8 @@ export default function Login() {
   const { toast } = useToast();
   
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<Role>('student');
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("password123");
+  const [password, setPassword] = useState("");
 
   const [isForgotOpen, setIsForgotOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
@@ -31,10 +31,18 @@ export default function Login() {
     
     setIsLoading(true);
     
-    // Simulate network delay for polish
     setTimeout(() => {
-      login(selectedRole);
-      toast({ title: "Welcome back!", description: `Successfully signed in as ${selectedRole}.` });
+      const authenticated = login(email, password);
+      if (!authenticated) {
+        setIsLoading(false);
+        toast({
+          variant: "destructive",
+          title: "Sign-in failed",
+          description: "Check the email and password. Demo accounts use password 123456.",
+        });
+        return;
+      }
+      toast({ title: "Welcome back!", description: "You are signed in." });
       setLocation("/");
     }, 800);
   };
@@ -46,8 +54,8 @@ export default function Login() {
     }
     
     toast({
-      title: "Reset link sent",
-      description: "If an account exists, a Firebase password reset email has been sent. (Demo: check your email)",
+      title: "Demo password",
+      description: `Password resets are not enabled. Use ${DEMO_PASSWORD} for the demo accounts.`,
     });
     setIsForgotOpen(false);
   };
@@ -81,7 +89,7 @@ export default function Login() {
                   id="email" 
                   type="email" 
                   autoComplete="email"
-                  placeholder="champion@example.com" 
+                  placeholder="islam@burkantkd.com"
                   required 
                   className="h-12 bg-background"
                   value={email}
@@ -101,7 +109,7 @@ export default function Login() {
                       <DialogHeader>
                         <DialogTitle>Reset Password</DialogTitle>
                         <DialogDescription>
-                          Enter your email address to receive a password reset link. This uses Firebase Authentication.
+                          Password resets are not enabled for these demo accounts. Use the shared demo password.
                         </DialogDescription>
                       </DialogHeader>
                       <div className="space-y-4 py-4">
@@ -118,7 +126,7 @@ export default function Login() {
                       </div>
                       <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => setIsForgotOpen(false)}>Cancel</Button>
-                        <Button type="button" onClick={handleResetPassword}>Send Link</Button>
+                        <Button type="button" onClick={handleResetPassword}>Show Demo Password</Button>
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>
@@ -133,23 +141,21 @@ export default function Login() {
                   onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
-              
-              <div className="space-y-2 pt-2">
-                <Label className="uppercase text-xs font-bold text-muted-foreground tracking-wider mb-2 block">Prototype: Select Role</Label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(['student', 'parent', 'coach'] as const).map(r => (
-                    <Button 
-                      key={r}
-                      type="button"
-                      variant={selectedRole === r ? "default" : "outline"}
-                      className={`capitalize ${selectedRole === r ? 'font-bold' : ''}`}
-                      onClick={() => setSelectedRole(r)}
-                    >
-                      {r}
-                    </Button>
+            </div>
+
+            <div className="rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground">
+              <p className="font-semibold text-foreground">Demo password: {DEMO_PASSWORD}</p>
+              <details className="mt-2">
+                <summary className="cursor-pointer font-medium">Demo account emails</summary>
+                <ul className="mt-2 grid gap-1">
+                  {DEMO_ACCOUNTS.map((account) => (
+                    <li key={account.email} className="flex justify-between gap-3">
+                      <span>{account.displayName}</span>
+                      <span className="text-right">{account.email}</span>
+                    </li>
                   ))}
-                </div>
-              </div>
+                </ul>
+              </details>
             </div>
             
             <Button type="submit" className="w-full h-14 text-lg font-bold uppercase tracking-widest mt-6" disabled={isLoading}>

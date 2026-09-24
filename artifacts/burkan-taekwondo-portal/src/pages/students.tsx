@@ -6,6 +6,8 @@ import {
   useGetStudents,
 } from "@workspace/api-client-react";
 import { useRole } from "@/lib/role-store";
+import { RosterBuilder } from "@/components/roster-builder";
+import { ParentChildProfiles } from "@/components/parent-child-profiles";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -77,7 +79,7 @@ export default function Students() {
       <div className="flex flex-col items-center justify-center h-[60vh] text-center p-6">
         <AlertCircle className="h-16 w-16 text-muted-foreground mb-4" />
         <h2 className="text-2xl font-display font-bold mb-2">Access Restricted</h2>
-        <p className="text-muted-foreground max-w-md">Students cannot view the roster. Please switch to Parent, Coach, or Admin to view this page.</p>
+        <p className="text-muted-foreground max-w-md">Student accounts cannot view this section.</p>
       </div>
     );
   }
@@ -86,7 +88,9 @@ export default function Students() {
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
-          <h1 className="text-3xl font-display font-bold uppercase tracking-tight">Roster & Profiles</h1>
+          <h1 className="text-3xl font-display font-bold uppercase tracking-tight">
+            {role === "parent" ? "My Kids" : "Roster & Profiles"}
+          </h1>
           <p className="text-muted-foreground mt-1">
             {role === 'parent' ? "Manage your children's profiles" : "Manage student roster and details"}
           </p>
@@ -104,6 +108,13 @@ export default function Students() {
           </div>
         </div>
       </div>
+
+      {role === "coach" && (
+        <div className="flex justify-end">
+          <RosterBuilder />
+        </div>
+      )}
+      {role === "parent" && <ParentChildProfiles />}
 
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

@@ -1,0 +1,29 @@
+Please implement the following architectural and UI updates to transition the app to a role-based dynamic state. Execute all 4 steps in this run:
+
+1. Mock Database & Auth State Management:
+   - Create a mock authentication context/data file to simulate a real database. Use a simple default password (e.g., '123456') for all accounts.
+   - Create these specific mock accounts:
+     - Admin: zaid@burkantkd.com (Role: Admin, Name: Zaid)
+     - Coaches: osaid@burkantkd.com (Name: Osaid Sqoor), suhaib@burkantkd.com (Name: Suhaib Atwan)
+     - Parent: parent@burkantkd.com
+     - Students: islam@burkantkd.com (Islam El Natsheh), sarah@burkantkd.com (Sarah Abujaish), ryan@burkantkd.com (Ryan Abu El-Rob), rama@burkantkd.com (Rama Abu El-Rob).
+   - In the mock database relationships, assign "Ryan Abu El-Rob" to "Suhaib Atwan"'s roster. Leave the other three students unassigned.
+
+2. Role-Based Access Control (RBAC) & Routing:
+   - Set the Login/Sign-up screen as the default entry point of the app.
+   - Upon successful login, strictly route the user to their designated dashboard (Student -> Student View, Coach -> Coach View, Parent -> Parent View).
+   - Remove the existing "Prototype Role" view-switcher from the mobile menu and UI for all standard users.
+   - ADMIN EXCEPTION: If the logged-in user is the Admin (zaid@burkantkd.com), render a persistent Admin Toolbar or keep the view-switcher active so the Admin can toggle between Student, Parent, and Coach views seamlessly without logging out.
+
+3. Coach Roster Builder UI & Logic:
+   - In the Coach dashboard's student section, add a primary red button with white text: "Create new Roster +".
+   - Clicking this button must trigger a vertical slide-up bottom sheet (reuse the mobile menu sheet's animation and component logic).
+   - Inside this bottom sheet, render a Search UI listing all students.
+   - Logic: Render a Lock Icon next to each student's name based on their database status.
+     - Open Lock = Unassigned.
+     - Closed Lock = Assigned to another coach's roster.
+   - Interaction: If the active coach (e.g., Osaid) clicks on a student with a Closed Lock (e.g., Ryan), do not add them. Instead, trigger a centered alert modal that says exactly: "Sorry, [Student Name] is registered in [Coach Name]'s roster."
+
+4. Parent Dashboard Updates:
+   - Change the sidebar and menu navigation labels from "Students" to "My Kids" in the Parent view[cite: 5]. The functionality remains identical.
+   - Inside the "My Kids" section, add a red button with white text reading: "Add new profile +". Place this prominently so parents can create sub-accounts for children without devices.

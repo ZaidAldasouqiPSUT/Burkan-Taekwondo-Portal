@@ -18,7 +18,6 @@ import {
   LogOut,
   Shield
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
@@ -36,9 +35,35 @@ const ALL_NAV_ITEMS = [
   { href: "/about", label: "About Us", icon: Info, roles: ["student", "parent", "coach", "admin"] },
 ];
 
+function AdminViewSelect({
+  role,
+  onChange,
+}: {
+  role: "parent" | "student" | "coach" | "admin" | null;
+  onChange: (role: "parent" | "student" | "coach" | "admin") => void;
+}) {
+  return (
+    <select
+      aria-label="Admin view"
+      className="rounded-md border border-border bg-background px-2 py-1.5 text-sm font-semibold capitalize text-primary outline-none focus:ring-2 focus:ring-ring"
+      value={role ?? "admin"}
+      onChange={(event) =>
+        onChange(
+          event.target.value as "parent" | "student" | "coach" | "admin",
+        )
+      }
+    >
+      <option value="admin">Admin</option>
+      <option value="student">Student</option>
+      <option value="parent">Parent</option>
+      <option value="coach">Coach</option>
+    </select>
+  );
+}
+
 export function AppShell({ children }: { children: ReactNode }) {
   const [location, setLocation] = useLocation();
-  const { role, login, logout, isAuthenticated } = useRole();
+  const { role, logout, isAuthenticated, isAdmin, switchView } = useRole();
   const queryClient = useQueryClient();
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
 
@@ -64,13 +89,22 @@ export function AppShell({ children }: { children: ReactNode }) {
     setLocation("/login");
   };
 
-  const handleRoleChange = (nextRole: "parent" | "student" | "coach") => {
+  const handleRoleChange = (
+    nextRole: "parent" | "student" | "coach" | "admin",
+  ) => {
+    if (!isAdmin) return;
     setMoreMenuOpen(false);
-    login(nextRole);
+    switchView(nextRole);
     setLocation("/");
   };
 
-  const navItems = ALL_NAV_ITEMS.filter(item => role && item.roles.includes(role));
+  const navItems = ALL_NAV_ITEMS.filter(
+    (item) => role && item.roles.includes(role),
+  ).map((item) =>
+    item.href === "/students" && role === "parent"
+      ? { ...item, label: "My Kids" }
+      : item,
+  );
 
   
   // Mobile bottom nav items (max 4 + 'More' menu)
@@ -126,26 +160,24 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Award className="h-6 w-6" />
           <span>BURKAN TKD</span>
         </Link>
-        
+        {isAdmin && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-muted-foreground">Admin view</span>
+            <AdminViewSelect role={role} onChange={handleRoleChange} />
+          </div>
+        )}
       </header>
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto pb-20 md:pb-0">
-        {/* Prototype role indicator for desktop */}
-        <div className="hidden md:flex items-center justify-end px-8 py-2 bg-card border-b border-border/50 sticky top-0 z-10 text-sm">
-          <div className="flex items-center gap-2">
-            <span className="text-muted-foreground font-medium text-xs">Viewing as:</span>
-            <select 
-              className="bg-transparent border-none text-primary font-bold text-sm capitalize focus:ring-0 outline-none cursor-pointer"
-              value={role || ""}
-              onChange={(e) => handleRoleChange(e.target.value as "parent" | "student" | "coach")}
-            >
-              <option value="student">Student</option>
-              <option value="parent">Parent</option>
-              <option value="coach">Coach</option>
-            </select>
+        {isAdmin && (
+          <div className="sticky top-0 z-10 hidden items-center justify-end gap-3 border-b border-border/50 bg-card px-8 py-2 text-sm md:flex">
+            <span className="text-xs font-medium text-muted-foreground">
+              Admin view
+            </span>
+            <AdminViewSelect role={role} onChange={handleRoleChange} />
           </div>
-        </div>
+        )}
         
         {children}
       </main>
@@ -195,25 +227,21 @@ export function AppShell({ children }: { children: ReactNode }) {
                     </SheetClose>
                   ))}
                   
-                  <div className="my-4 h-px bg-border" />
-                  
-                  <div className="px-2 text-xs font-semibold text-muted-foreground mb-3 flex items-center gap-2 uppercase tracking-wider">
-                    <Shield className="h-4 w-4" /> 
-                    Prototype Role
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 mb-6">
-                    {(['parent', 'student', 'coach'] as const).map(r => (
-                      <Button 
-                        key={r} 
-                        variant={role === r ? "default" : "outline"}
-                        size="sm"
-                        className="capitalize text-xs"
-                        onClick={() => handleRoleChange(r)}
-                      >
-                        {r}
-                      </Button>
-                    ))}
-                  </div>
+                  {isAdmin && (
+                    <>
+                      <div className="my-4 h-px bg-border" />
+                      <div className="mb-3 flex items-center gap-2 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        <Shield className="h-4 w-4" />
+                        Admin view
+                      </div>
+                      <div className="mb-6">
+                        <AdminViewSelect
+                          role={role}
+                          onChange={handleRoleChange}
+                        />
+                      </div>
+                    </>
+                  )}
 
                   <SheetClose asChild>
                     <Link href="/settings">
