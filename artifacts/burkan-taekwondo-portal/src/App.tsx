@@ -21,6 +21,7 @@ import Locations from '@/pages/locations';
 import About from '@/pages/about';
 import Settings from '@/pages/settings';
 import Login from '@/pages/login';
+import Approvals from '@/pages/approvals';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -47,6 +48,7 @@ function Router() {
           <Route path="/locations" component={Locations} />
           <Route path="/about" component={About} />
           <Route path="/settings" component={Settings} />
+          <Route path="/approvals" component={Approvals} />
           <Route path="/login" component={Login} />
           <Route component={NotFound} />
         </Switch>

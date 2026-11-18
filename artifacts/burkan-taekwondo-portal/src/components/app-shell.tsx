@@ -2,6 +2,7 @@ import { ReactNode, useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRole } from "@/lib/role-store";
+import Pending from "@/pages/pending";
 import { 
   Home, 
   Users, 
@@ -16,7 +17,9 @@ import {
   Settings, 
   Menu,
   LogOut,
-  Shield
+  Shield,
+  UserCheck,
+  Loader2
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -33,6 +36,7 @@ const ALL_NAV_ITEMS = [
   { href: "/news", label: "News", icon: Newspaper, roles: ["student", "parent", "coach", "admin"] },
   { href: "/locations", label: "Locations", icon: MapPin, roles: ["student", "parent", "coach", "admin"] },
   { href: "/about", label: "About Us", icon: Info, roles: ["student", "parent", "coach", "admin"] },
+  { href: "/approvals", label: "Approvals", icon: UserCheck, roles: ["admin"] },
 ];
 
 function AdminViewSelect({
@@ -63,20 +67,35 @@ function AdminViewSelect({
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [location, setLocation] = useLocation();
-  const { role, logout, isAuthenticated, isAdmin, switchView } = useRole();
+  const { role, logout, isAuthenticated, isAdmin, switchView, status } = useRole();
   const queryClient = useQueryClient();
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
 
   useEffect(() => {
-    if (!isAuthenticated && location !== "/login") {
+    if (status === "signed-out" && location !== "/login") {
       setLocation("/login");
-    } else if (isAuthenticated && location === "/login") {
+    } else if (status !== "signed-out" && status !== "loading" && location === "/login") {
       setLocation("/");
     }
-  }, [isAuthenticated, location, setLocation]);
+  }, [status, location, setLocation]);
 
+  if (status === "loading") {
+    return (
+      <div className="flex min-h-[100dvh] items-center justify-center bg-muted/30 text-muted-foreground">
+        <Loader2 className="h-6 w-6 animate-spin" />
+      </div>
+    );
+  }
+
+  if (status === "signed-out") {
+    // Only the login page renders for signed-out visitors; anything else
+    // shows nothing for the instant before the redirect above runs.
+    return location === "/login" ? <>{children}</> : null;
+  }
+
+  // Signed in but not approved (pending, declined, or no request yet).
   if (!isAuthenticated) {
-    return <>{children}</>;
+    return <Pending />;
   }
 
   const isAuthPage = location === "/login";
@@ -85,7 +104,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const handleLogout = () => {
     setMoreMenuOpen(false);
     queryClient.clear();
-    logout();
+    void logout();
     setLocation("/login");
   };
 

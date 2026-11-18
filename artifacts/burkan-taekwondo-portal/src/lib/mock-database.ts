@@ -1,9 +1,8 @@
-export type DemoRole = "parent" | "student" | "coach" | "admin";
-
-export interface DemoAccount {
+// Sample roster data used by the coach roster builder until student records
+// move into Firestore. Sign-in no longer uses anything in this file.
+export interface DemoCoach {
   email: string;
   displayName: string;
-  role: DemoRole;
 }
 
 export interface DemoStudent {
@@ -19,19 +18,6 @@ export interface ChildProfile {
   createdAt: string;
 }
 
-export const DEMO_PASSWORD = "123456";
-
-export const DEMO_ACCOUNTS: DemoAccount[] = [
-  { email: "zaid@burkantkd.com", displayName: "Zaid", role: "admin" },
-  { email: "osaid@burkantkd.com", displayName: "Osaid Sqoor", role: "coach" },
-  { email: "suhaib@burkantkd.com", displayName: "Suhaib Atwan", role: "coach" },
-  { email: "parent@burkantkd.com", displayName: "Parent", role: "parent" },
-  { email: "islam@burkantkd.com", displayName: "Islam El Natsheh", role: "student" },
-  { email: "sarah@burkantkd.com", displayName: "Sarah Abujaish", role: "student" },
-  { email: "ryan@burkantkd.com", displayName: "Ryan Abu El-Rob", role: "student" },
-  { email: "rama@burkantkd.com", displayName: "Rama Abu El-Rob", role: "student" },
-];
-
 export const DEMO_STUDENTS: DemoStudent[] = [
   { id: "islam", email: "islam@burkantkd.com", fullName: "Islam El Natsheh" },
   { id: "sarah", email: "sarah@burkantkd.com", fullName: "Sarah Abujaish" },
@@ -39,27 +25,16 @@ export const DEMO_STUDENTS: DemoStudent[] = [
   { id: "rama", email: "rama@burkantkd.com", fullName: "Rama Abu El-Rob" },
 ];
 
-export const DEMO_COACHES = DEMO_ACCOUNTS.filter(
-  (account) => account.role === "coach",
-);
+export const DEMO_COACHES: DemoCoach[] = [
+  { email: "osaid@burkantkd.com", displayName: "Osaid Sqoor" },
+  { email: "suhaib@burkantkd.com", displayName: "Suhaib Atwan" },
+];
 
 const ROSTER_STORAGE_KEY = "burkan_demo_roster_assignments";
 const CHILD_PROFILE_STORAGE_KEY = "burkan_demo_child_profiles";
 const INITIAL_ROSTER_ASSIGNMENTS: Record<string, string> = {
   ryan: "suhaib@burkantkd.com",
 };
-
-export function authenticateDemoAccount(
-  email: string,
-  password: string,
-): DemoAccount | null {
-  if (password !== DEMO_PASSWORD) return null;
-  return (
-    DEMO_ACCOUNTS.find(
-      (account) => account.email === email.trim().toLowerCase(),
-    ) ?? null
-  );
-}
 
 export function getRosterAssignments(): Record<string, string> {
   const assignments = { ...INITIAL_ROSTER_ASSIGNMENTS };
