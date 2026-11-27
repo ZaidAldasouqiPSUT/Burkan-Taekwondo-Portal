@@ -1,0 +1,152 @@
+rules_version = '2';
+
+// Burkan Taekwondo — access rules.
+// Roles: admin, coach, parent, student. Parents/students only ever see records
+// for the students listed in their own `users/{uid}.studentIds`.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- helpers ----------
+    function signedIn() { return request.auth != null; }
+    function userPath(uid) { return /databases/$(database)/documents/users/$(uid); }
+    function codePath(code) { return /databases/$(database)/documents/joinCodes/$(code); }
+    function me() { return get(userPath(request.auth.uid)).data; }
+    function approved() { return signedIn() && exists(userPath(request.auth.uid)) && me().status == 'approved'; }
+    function isAdmin() { return approved() && me().role == 'admin'; }
+    function isStaff() { return approved() && me().role in ['admin', 'coach']; }
+    function linked(studentId) { return approved() && studentId in me().studentIds; }
+    function onlyChanges(keys) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys); }
+
+    // ---------- accounts ----------
+    function baseProfileOk(d) {
+      return d.keys().hasOnly(['fullName', 'email', 'phone', 'role', 'status', 'studentIds', 'joinCode',
+                               'createdAt', 'notifyPush', 'notifyEmail', 'notifySms'])
+        && d.fullName is string && d.fullName.size() > 1 && d.fullName.size() < 120
+        && d.email == request.auth.token.email
+        && d.studentIds is list;
+    }
+
+    function validNewProfile(uid) {
+      let d = request.resource.data;
+      return baseProfileOk(d) && (
+        // 1. Very first account becomes admin (written together with meta/bootstrap).
+        (d.role == 'admin' && d.status == 'approved' && d.studentIds.size() == 0
+          && !exists(/databases/$(database)/documents/meta/bootstrap)
+          && getAfter(/databases/$(database)/documents/meta/bootstrap).data.adminUid == uid)
+        // 2. No code: waits for an admin to approve.
+        || (d.status == 'pending' && d.role in ['student', 'parent', 'coach']
+            && d.studentIds.size() == 0 && d.joinCode == null)
+        // 3. Family join code: approved instantly and linked to that student.
+        || (d.status == 'approved' && d.role in ['student', 'parent'] && d.joinCode is string
+            && exists(codePath(d.joinCode))
+            && get(codePath(d.joinCode)).data.kind == 'family'
+            && d.studentIds == [get(codePath(d.joinCode)).data.studentId])
+        // 4. Coach invite code.
+        || (d.status == 'approved' && d.role == 'coach' && d.joinCode is string
+            && exists(codePath(d.joinCode))
+            && get(codePath(d.joinCode)).data.kind == 'coach'
+            && d.studentIds.size() == 0)
+      );
+    }
+
+    function validSelfUpdate() {
+      let d = request.resource.data;
+      let o = resource.data;
+      return onlyChanges(['phone', 'notifyPush', 'notifyEmail', 'notifySms', 'studentIds', 'joinCode'])
+        && (
+          !d.diff(o).affectedKeys().hasAny(['studentIds'])
+          // A parent may link another child by presenting that child's join code.
+          || (o.role == 'parent' && o.status == 'approved' && d.joinCode is string
+              && exists(codePath(d.joinCode))
+              && get(codePath(d.joinCode)).data.kind == 'family'
+              && d.studentIds == o.studentIds.concat([get(codePath(d.joinCode)).data.studentId]))
+        );
+    }
+
+    match /users/{uid} {
+      allow get: if (signedIn() && request.auth.uid == uid) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if signedIn() && request.auth.uid == uid && validNewProfile(uid);
+      allow update: if isAdmin() || (signedIn() && request.auth.uid == uid && validSelfUpdate());
+      allow delete: if isAdmin() && request.auth.uid != uid;
+    }
+
+    match /meta/bootstrap {
+      allow get: if true;
+      allow create: if signedIn()
+        && request.resource.data.adminUid == request.auth.uid
+        && getAfter(userPath(request.auth.uid)).data.role == 'admin';
+    }
+
+    match /meta/coachCode {
+      allow read, write: if isAdmin();
+    }
+
+    // Knowing a code is what grants access, so codes can be fetched one at a time but never listed.
+    match /joinCodes/{code} {
+      allow get: if signedIn();
+      allow list: if isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // ---------- students and their records ----------
+    match /students/{studentId} {
+      allow get: if isStaff() || linked(studentId);
+      allow list: if isStaff();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || (isStaff() && onlyChanges(['belt', 'beltColor', 'status']));
+    }
+
+    match /attendance/{id} {
+      allow read: if isStaff() || linked(resource.data.studentId);
+      allow create, update: if isStaff();
+      allow delete: if isStaff();
+    }
+
+    match /feedback/{id} {
+      allow read: if isStaff() || linked(resource.data.studentId);
+      allow create: if isStaff();
+      allow update: if isStaff() || (linked(resource.data.studentId) && onlyChanges(['read']));
+      allow delete: if isAdmin();
+    }
+
+    match /finances/{id} {
+      allow read: if isAdmin() || linked(resource.data.studentId);
+      allow write: if isAdmin();
+    }
+
+    match /beltRegistrations/{id} {
+      allow read: if isStaff() || linked(resource.data.studentId);
+      allow create: if isStaff()
+        || (linked(request.resource.data.studentId) && request.resource.data.status == 'Registered');
+      allow update: if isStaff();
+      allow delete: if isStaff() || (linked(resource.data.studentId) && resource.data.status == 'Registered');
+    }
+
+    // ---------- club-wide content ----------
+    match /schedule/{id} {
+      allow read: if approved();
+      allow write: if isAdmin();
+    }
+    match /beltTests/{id} {
+      allow read: if approved();
+      allow write: if isAdmin();
+    }
+    match /news/{id} {
+      allow read: if approved();
+      allow write: if isAdmin();
+    }
+    match /locations/{id} {
+      allow read: if approved();
+      allow write: if isAdmin();
+    }
+
+    // Coach time-off / class coverage requests.
+    match /requests/{id} {
+      allow read: if isAdmin() || (isStaff() && resource.data.uid == request.auth.uid);
+      allow create: if isStaff() && request.resource.data.uid == request.auth.uid
+        && request.resource.data.status == 'Pending';
+      allow update, delete: if isAdmin();
+    }
+  }
+}
